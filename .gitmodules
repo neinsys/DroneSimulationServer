@@ -1,0 +1,6 @@
+[submodule "src/find_path"]
+	path = src/find_path
+	url = https://github.com/neinsys/push_relabel_cuda.git
+[submodule "src/image"]
+	path = src/image
+	url = https://github.com/neinsys/pcl.git
