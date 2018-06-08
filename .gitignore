@@ -36,3 +36,18 @@ crow_all.h
 
 # conan.io
 build/
+
+
+.idea
+
+
+
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
