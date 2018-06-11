@@ -33,6 +33,16 @@ int main(int argc, char** argv){
             size_t finish = body.find(boundary+"--");
             if(next == finish)break;
 
+            size_t name_start = body.find("name=",next)+6;
+            size_t name_end = body.find("\";",name_start);
+            string name = body.substr(name_start,name_end-name_start);
+
+            size_t filename_start = body.find("filename=",next)+10;
+            size_t filename_end = body.find("\"",filename_start);
+            string filename = body.substr(filename_start,filename_end-filename_start);
+
+            std::cout <<name <<std::endl<<filename<<std::endl;
+
             size_t file_start = body.find("\r\n\r\n",next)+4;
             size_t file_end = body.find("\r\n"+boundary,file_start);
             string file_content = body.substr(file_start,file_end-file_start);
