@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
 #include <locale>
 #include "flowgraph.h"
 #include "find_path.h"
@@ -10,9 +11,38 @@
 using std::string;
 using std::ofstream;
 using std::endl;
-
+const int cm=100;
 int main(int argc, char** argv){
     crow::App<> app;
+    CROW_ROUTE(app,"/example")
+       .methods("GET"_method,"POST"_method)
+   ([](const crow::request& req){
+       std::vector<point> start,end;
+        for(int i=0;i<10;i++){
+            for(int j=0;j<10;j++){
+                for(int k=0;k<10;k++){
+                    start.push_back({i,j,k});
+                    end.push_back({i,j,k+40});
+                }
+            }
+        }
+        auto paths = find_path(start,end,10,10,60);
+        int n=paths.size();
+        int t=paths.back()->size()-1;
+        std::stringstream s;
+        s << n << ' ' << t<<'\n';
+        for(const path* P:paths){
+            for(auto it=P->head;it!=NULL;it=it->next){
+                point p=it->p;
+                s<<p.x*cm <<' ' << p.y*cm<<' '<<p.z*cm<<'\n';
+            }
+        }
+
+       return s.str();
+   });
+
+
+
     CROW_ROUTE(app,"/")
         .methods("POST"_method)
     ([](const crow::request& req){
