@@ -12,8 +12,10 @@ using std::string;
 using std::ofstream;
 using std::endl;
 const int cm=100;
+
 int main(int argc, char** argv){
     crow::App<> app;
+    crow::mustache::set_base("./html");
     CROW_ROUTE(app,"/example")
        .methods("GET"_method,"POST"_method)
    ([](const crow::request& req){
@@ -40,6 +42,59 @@ int main(int argc, char** argv){
 
        return s.str();
    });
+
+    CROW_ROUTE(app,"/insertImage")
+            .methods("GET"_method)
+                    ([](const crow::request& req){
+                        crow::mustache::context ctx;
+                        return crow::mustache::load("insertImage.html").render();
+                    });
+
+    CROW_ROUTE(app,"/insertImage")
+            .methods("POST"_method)
+                    ([](const crow::request& req){
+                        string content = crow::get_header_value<crow::ci_map >(req.headers,"content-type");
+                        string content_type = content.substr(0,content.find(';'));
+                        std::transform(content_type.begin(), content_type.end(), content_type.begin(), ::tolower);
+                        std::cout << content_type<<std::endl << req.body <<std::endl;
+                        if(content_type != "multipart/form-data"){
+                            return "Error";
+                        }
+                        size_t idx = content.find("boundary=")+string("boundary=").length();
+                        string boundary = "--"+content.substr(idx);
+
+                        size_t index = 0;
+                        const string& body = req.body;
+                        std::vector<string> objFiles;
+                        while(true){
+                            size_t next = body.find(boundary,index);
+                            size_t finish = body.find(boundary+"--");
+                            if(next == finish)break;
+
+                            size_t name_start = body.find("name=",next)+6;
+                            size_t name_end = body.find("\";",name_start);
+                            string name = body.substr(name_start,name_end-name_start);
+
+                            size_t filename_start = body.find("filename=",next)+10;
+                            size_t filename_end = body.find("\"",filename_start);
+                            string filename = body.substr(filename_start,filename_end-filename_start);
+
+                            std::cout <<name <<std::endl<<filename<<std::endl;
+
+                            size_t file_start = body.find("\r\n\r\n",next)+4;
+                            size_t file_end = body.find("\r\n"+boundary,file_start);
+                            string file_content = body.substr(file_start,file_end-file_start);
+                            objFiles.push_back(file_content);
+                            index=next+boundary.length();
+                        }
+
+                        for(const string& obj:objFiles){
+                            pcl::PointCloud<pcl::PointXYZ> pc = Converter().obj2PointCloud(obj);
+                            std::cout<<pc<<std::endl;
+                        }
+
+                        return "Hello world";
+                    });
 
 
 

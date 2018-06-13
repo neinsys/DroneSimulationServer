@@ -3,6 +3,7 @@ project (drone_server)
 
 add_subdirectory(find_path)
 add_subdirectory(image/PCL_converter)
+
 include_directories("${PROJECT_SOURCE_DIR}/find_path")
 include_directories("${PROJECT_SOURCE_DIR}/image/PCL_converter")
 
@@ -26,3 +27,9 @@ target_link_libraries(drone_server ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(drone_server ${PCL_LIBRARIES})
 target_link_libraries(drone_server find_path)
 target_link_libraries(drone_server image_processing)
+add_custom_command(OUTPUT insertImage.html
+        COMMAND ${CMAKE_COMMAND} -E
+        copy ${PROJECT_SOURCE_DIR}/html/insertImage.html ${CMAKE_CURRENT_BINARY_DIR}/html/insertImage.html
+        DEPENDS ${PROJECT_SOURCE_DIR}/html/insertImage.html
+        )
+add_custom_target(insertImage_copy ALL DEPENDS insertImage.html)
