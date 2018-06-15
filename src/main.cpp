@@ -115,13 +115,14 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
     std::cout << *voxel_cloud << std::endl;
 
     pcl::io::savePCDFileASCII("debug.pcd",*voxel_cloud);
-
+/*
     pcl::PointCloud<pcl::PointXYZ>::Ptr print_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     *print_cloud = *voxel_cloud;
     pcl::visualization::PCLVisualizer vis3 ("VOXELIZED SAMPLES CLOUD");
     vis3.addPointCloud<pcl::PointXYZ> (print_cloud);
 
     vis3.spin ();
+    */
     return *voxel_cloud;
 }
 
