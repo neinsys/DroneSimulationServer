@@ -66,7 +66,7 @@ vector<pair<string,string>> readFileFormData(const string& body,const string& bo
     return objFiles;
 }
 
-pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const float width=50.0f,const int num=1000){
+pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const float width=50.0f,int num=1000){
     pcl::PointCloud<pcl::PointXYZ> cloud=Converter().obj2PointCloud(content);
 
     float mx=1e18f;
@@ -109,6 +109,7 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
     std::cout << *voxel_cloud << std::endl;
 
     std::random_shuffle(voxel_cloud->points.begin(),voxel_cloud->points.end());
+    num=std::min<int>(num,voxel_cloud->points.size());
     voxel_cloud->points.resize(num);
     voxel_cloud->width=num;
 
@@ -122,7 +123,7 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
     vis3.addPointCloud<pcl::PointXYZ> (print_cloud);
 
     vis3.spin ();
-    */
+*/
     return *voxel_cloud;
 }
 
