@@ -116,8 +116,8 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
     std::cout << *voxel_cloud << std::endl;
 
     pcl::io::savePCDFileASCII("debug.pcd",*voxel_cloud);
-/*
-    pcl::PointCloud<pcl::PointXYZ>::Ptr print_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+/*    pcl::PointCloud<pcl::PointXYZ>::Ptr print_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     *print_cloud = *voxel_cloud;
     pcl::visualization::PCLVisualizer vis3 ("VOXELIZED SAMPLES CLOUD");
     vis3.addPointCloud<pcl::PointXYZ> (print_cloud);
@@ -128,12 +128,26 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
 }
 
 void savePointCloud(const string& filename,const pcl::PointCloud<pcl::PointXYZ>& pc){
-    std::ofstream outFile(filename);
+    std::ofstream outFile(filePath+"/"+filename);
     outFile << pc.points.size()<<std::endl;
     for(const auto& p:pc.points){
         outFile << int(p.x) << ' ' << int(p.y) << ' ' << int(p.z) << std::endl;
     }
     outFile.close();
+}
+vector<point> loadPointCloud(const string& filename){
+    vector<point> pc;
+    std::ifstream inFile(filePath+"/"+filename);
+    int num;
+    inFile >>num;
+
+    for(int i=0;i<num;i++){
+        int x,y,z;
+        inFile >> x>>y>>z;
+        pc.push_back({x,y,z});
+    }
+    inFile.close();
+    return pc;
 }
 
 int main(int argc, char** argv){
@@ -166,6 +180,52 @@ int main(int argc, char** argv){
        return s.str();
    });
 
+    CROW_ROUTE(app,"/findPath")
+            .methods("GET"_method)
+                    ([&](const crow::request& req){
+                        int num = boost::lexical_cast<int>(req.url_params.get("num"));
+                        std::vector<std::vector<path*>> paths;
+                        vector<vector<point>> objs;
+                        for(int i=1;i<=num;i++){
+                            char key[40];
+                            sprintf(key,"input%d",i);
+                            const std::string filename = req.url_params.get(key);
+                            objs.push_back(loadPointCloud(filename));
+                        }
+                        for(int i=0;i<objs.size()-1;i++){
+                            auto start = objs[i];
+                            auto end = objs[i+1];
+                            int X=0,Y=0,Z=0;
+                            for(const point& p:start){
+                                X=std::max(X,p.x);
+                                Y=std::max(Y,p.y);
+                                Z=std::max(Z,p.z);
+                            }
+                            for(const point& p:end){
+                                X=std::max(X,p.x);
+                                Y=std::max(Y,p.y);
+                                Z=std::max(Z,p.z);
+                            }
+
+                            auto path = find_path(start,end,X+1,Y+1,Z+1);
+                            paths.push_back(path);
+                        }
+                        std::vector<path*> new_path = merge_path(paths);
+                        paths.clear();
+                        int n=new_path.size();
+                        int t=new_path.back()->size()-1;
+                        std::stringstream s;
+                        s << n << ' ' << t<<'\n';
+                        for(const path* P:new_path){
+                            for(auto it=P->head;it!=NULL;it=it->next){
+                                point p=it->p;
+                                s<<p.x*cm <<' ' << p.y*cm<<' '<<p.z*cm<<'\n';
+                            }
+                        }
+
+                        return s.str();
+                    });
+
     CROW_ROUTE(app,"/insertImage")
             .methods("GET"_method)
                     ([](const crow::request& req){
@@ -193,7 +253,7 @@ int main(int argc, char** argv){
 
                         for(const pair<string,string>& obj:objFiles){
                             auto pc = convertPointCloud(obj.second);
-                            savePointCloud(filePath+"/"+obj.first,pc);
+                            savePointCloud(obj.first,pc);
                         }
 
                         return "OK";
