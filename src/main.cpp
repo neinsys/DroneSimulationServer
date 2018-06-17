@@ -186,6 +186,10 @@ int main(int argc, char** argv){
                         int num = boost::lexical_cast<int>(req.url_params.get("num"));
                         std::vector<std::vector<path*>> paths;
                         vector<vector<point>> objs;
+                        int rest=0;
+                        if(req.url_params.get("rest")!=nullptr){
+                            rest=boost::lexical_cast<int>(req.url_params.get("rest"));
+                        }
                         for(int i=1;i<=num;i++){
                             char key[40];
                             sprintf(key,"input%d",i);
@@ -210,7 +214,7 @@ int main(int argc, char** argv){
                             auto path = find_path(start,end,X+1,Y+1,Z+1);
                             paths.push_back(path);
                         }
-                        std::vector<path*> new_path = merge_path(paths);
+                        std::vector<path*> new_path = merge_path(paths,rest);
                         paths.clear();
                         int n=new_path.size();
                         int t=new_path.back()->size()-1;
