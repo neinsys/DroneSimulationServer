@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <locale>
 #include <limits.h>
+#include <algorithm>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -196,6 +197,27 @@ int main(int argc, char** argv){
                             const std::string filename = req.url_params.get(key);
                             objs.push_back(loadPointCloud(filename));
                         }
+
+                        int max_num=0;
+                        for(auto& obj:objs){
+                            max_num=std::max<int>(max_num,obj.size());
+                        }
+                        const int N=50;
+                        for(auto& obj:objs){
+                            for(point& p:obj){
+                                p.z++;
+                            }
+                            int add=max_num-obj.size();
+                            for(int i=0;i<add;i++){
+                                int x=i/N;
+                                int y=i%N;
+                                int z=0;
+                                obj.push_back({x,y,z});
+                            }
+                        }
+
+
+
                         for(int i=0;i<objs.size()-1;i++){
                             auto start = objs[i];
                             auto end = objs[i+1];
@@ -214,7 +236,9 @@ int main(int argc, char** argv){
                             auto path = find_path(start,end,X+1,Y+1,Z+1);
                             paths.push_back(path);
                         }
+                        std::cout << "aa" << std::endl;
                         std::vector<path*> new_path = merge_path(paths,rest);
+                        std::cout << "bb" << std::endl;
                         paths.clear();
                         int n=new_path.size();
                         int t=new_path.back()->size()-1;
