@@ -184,6 +184,79 @@ int main(int argc, char** argv){
     CROW_ROUTE(app,"/findPath")
             .methods("GET"_method)
                     ([&](const crow::request& req){
+                        int num = boost::lexical_cast<int>(req.url_params.get("num"));
+                        std::vector<std::vector<path*>> paths;
+                        vector<vector<point>> objs;
+                        int rest=0;
+                        if(req.url_params.get("rest")!=nullptr){
+                            rest=boost::lexical_cast<int>(req.url_params.get("rest"));
+                        }
+                        for(int i=1;i<=num;i++){
+                            char key[40];
+                            sprintf(key,"input%d",i);
+                            const std::string filename = req.url_params.get(key);
+                            objs.push_back(loadPointCloud(filename));
+                        }
+
+                        int max_num=0;
+                        for(auto& obj:objs){
+                            max_num=std::max<int>(max_num,obj.size());
+                        }
+                        const int N=50;
+                        for(auto& obj:objs){
+                            for(point& p:obj){
+                                p.z++;
+                            }
+                            int add=max_num-obj.size();
+                            for(int i=0;i<add;i++){
+                                int x=i/N;
+                                int y=i%N;
+                                int z=0;
+                                obj.push_back({x,y,z});
+                            }
+                        }
+
+
+
+                        for(int i=0;i<objs.size()-1;i++){
+                            auto start = objs[i];
+                            auto end = objs[i+1];
+                            int X=0,Y=0,Z=0;
+                            for(const point& p:start){
+                                X=std::max(X,p.x);
+                                Y=std::max(Y,p.y);
+                                Z=std::max(Z,p.z);
+                            }
+                            for(const point& p:end){
+                                X=std::max(X,p.x);
+                                Y=std::max(Y,p.y);
+                                Z=std::max(Z,p.z);
+                            }
+
+                            auto path = find_path(start,end,X+1,Y+1,Z+1);
+                            paths.push_back(path);
+                        }
+                        std::cout << "aa" << std::endl;
+                        std::vector<path*> new_path = merge_path(paths,rest);
+                        std::cout << "bb" << std::endl;
+                        paths.clear();
+                        int n=new_path.size();
+                        int t=new_path.back()->size()-1;
+                        std::stringstream s;
+                        s << n << ' ' << t<<'\n';
+                        for(const path* P:new_path){
+                            for(auto it=P->head;it!=NULL;it=it->next){
+                                point p=it->p;
+                                s<<p.x*cm <<' ' << p.y*cm<<' '<<p.z*cm<<'\n';
+                            }
+                        }
+
+                        return s.str();
+                    });
+
+    CROW_ROUTE(app,"/findPath2")
+            .methods("GET"_method)
+                    ([&](const crow::request& req){
                         auto images = req.url_params.get_list("image");
                         std::vector<std::vector<path*>> paths;
                         vector<vector<point>> objs;
@@ -252,6 +325,7 @@ int main(int argc, char** argv){
                         return s.str();
                     });
 
+
     CROW_ROUTE(app,"/insertImage")
             .methods("GET"_method)
                     ([](const crow::request& req){
@@ -296,7 +370,7 @@ int main(int argc, char** argv){
                                "    <title>Image List</title>\n"
                                "</head>\n"
                                "<body>\n"
-                               "<form method=\"get\" action=\"findPath\">";
+                               "<form method=\"get\" action=\"findPath2\">";
                         for(auto&& file : fs::recursive_directory_iterator(filePath)){
                             std::string filename=file.path().leaf().generic_string();
                             list<<"<input type=\"checkbox\" name=\"image[]\" value=\""<<filename<<"\">" <<filename<<"<br>";
