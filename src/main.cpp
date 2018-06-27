@@ -184,17 +184,22 @@ int main(int argc, char** argv){
     CROW_ROUTE(app,"/findPath")
             .methods("GET"_method)
                     ([&](const crow::request& req){
-                        int num = boost::lexical_cast<int>(req.url_params.get("num"));
+                        std::cout<<req.url_params<< std::endl;
+                        auto images = req.url_params.get_list("image");
+                        std::cout<<"aa"<< std::endl;
                         std::vector<std::vector<path*>> paths;
                         vector<vector<point>> objs;
                         int rest=0;
                         if(req.url_params.get("rest")!=nullptr){
                             rest=boost::lexical_cast<int>(req.url_params.get("rest"));
                         }
-                        for(int i=1;i<=num;i++){
-                            char key[40];
-                            sprintf(key,"input%d",i);
-                            const std::string filename = req.url_params.get(key);
+                        std::cout<<"aa"<< std::endl;
+                        std::cout<<images.size()<<std::endl;
+                        for(auto image : images){
+                            printf("%s\n",image);
+                            fflush(stdout);
+                            const std::string filename = image;
+                            std::cout << filename << std::endl;
                             objs.push_back(loadPointCloud(filename));
                         }
 
@@ -291,9 +296,23 @@ int main(int argc, char** argv){
             .methods("POST"_method,"GET"_method)
                     ([&filePath](const crow::request& req){
                         std::stringstream list;
+                        list <<"<!DOCTYPE html>\n"
+                               "<html lang=\"en\">\n"
+                               "<head>\n"
+                               "    <meta charset=\"UTF-8\">\n"
+                               "    <title>Image List</title>\n"
+                               "</head>\n"
+                               "<body>\n"
+                               "<form method=\"get\" action=\"findPath\">";
                         for(auto&& file : fs::recursive_directory_iterator(filePath)){
-                            list<<file.path().leaf().generic_string()<<std::endl;
+                            std::string filename=file.path().leaf().generic_string();
+                            list<<"<input type=\"checkbox\" name=\"image[]\" value=\""<<filename<<"\">" <<filename<<"<br>";
                         }
+                        list <<"<input type=\"text\" name=\"rest\">이미지간 간격<br>"
+                               "<input type=\"submit\" value=\"전송\">\n"
+                               "</form>\n"
+                               "</body>\n"
+                               "</html>";
                         return list.str();
                     });
 
