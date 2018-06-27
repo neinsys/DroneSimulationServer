@@ -184,22 +184,15 @@ int main(int argc, char** argv){
     CROW_ROUTE(app,"/findPath")
             .methods("GET"_method)
                     ([&](const crow::request& req){
-                        std::cout<<req.url_params<< std::endl;
                         auto images = req.url_params.get_list("image");
-                        std::cout<<"aa"<< std::endl;
                         std::vector<std::vector<path*>> paths;
                         vector<vector<point>> objs;
                         int rest=0;
                         if(req.url_params.get("rest")!=nullptr){
                             rest=boost::lexical_cast<int>(req.url_params.get("rest"));
                         }
-                        std::cout<<"aa"<< std::endl;
-                        std::cout<<images.size()<<std::endl;
                         for(auto image : images){
-                            printf("%s\n",image);
-                            fflush(stdout);
                             const std::string filename = image;
-                            std::cout << filename << std::endl;
                             objs.push_back(loadPointCloud(filename));
                         }
 
@@ -308,7 +301,7 @@ int main(int argc, char** argv){
                             std::string filename=file.path().leaf().generic_string();
                             list<<"<input type=\"checkbox\" name=\"image[]\" value=\""<<filename<<"\">" <<filename<<"<br>";
                         }
-                        list <<"<input type=\"text\" name=\"rest\">이미지간 간격<br>"
+                        list <<"<input type=\"text\" name=\"rest\" value=\"0\">이미지간 간격<br>"
                                "<input type=\"submit\" value=\"전송\">\n"
                                "</form>\n"
                                "</body>\n"
