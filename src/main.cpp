@@ -406,7 +406,7 @@ int main(int argc, char** argv){
 
         return "Hello world";
     });
-    app.port(8080).run();
+    app.port(8080).multithreaded().run();
     return 0;
 
 }
