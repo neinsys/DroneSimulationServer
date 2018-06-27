@@ -243,7 +243,12 @@ int main(int argc, char** argv){
 
                         std::stringstream s;
                         if(new_path.empty()){
-                            s<<0<< ' '<<0;
+                            s<<max_num<< ' '<< 0 << '\n';
+                            for(auto& obj : objs){
+                                for(const point& p:obj) {
+                                    s << p.x * cm << ' ' << p.y * cm << ' ' << p.z * cm << '\n';
+                                }
+                            }
                             return s.str();
                         }
                         int n=new_path.size();
@@ -317,9 +322,19 @@ int main(int argc, char** argv){
                         std::vector<path*> new_path = merge_path(paths,rest);
                         std::cout << "bb" << std::endl;
                         paths.clear();
+                        std::stringstream s;
+                        if(new_path.empty()){
+                            s<<max_num<< ' '<< 0 << '\n';
+                            for(auto& obj : objs){
+                                for(const point& p:obj) {
+                                    s << p.x * cm << ' ' << p.y * cm << ' ' << p.z * cm << '\n';
+                                }
+                            }
+                            return s.str();
+                        }
                         int n=new_path.size();
                         int t=new_path.back()->size()-1;
-                        std::stringstream s;
+
                         s << n << ' ' << t<<'\n';
                         for(const path* P:new_path){
                             for(auto it=P->head;it!=NULL;it=it->next){
