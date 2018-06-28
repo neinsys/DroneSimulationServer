@@ -154,6 +154,24 @@ vector<point> loadPointCloud(const string& filename){
 vector<vector<point>> objs;
 int rest=0;
 int max_num=0;
+
+const string OK="<!DOCTYPE html>\n"
+                "<html lang=\"en\">\n"
+                "<head>\n"
+                "    <meta charset=\"UTF-8\">\n"
+                "    <title>Image List</title>\n"
+                "    <style type=\"text/css\">\n"
+                "        body {\n"
+                "            background-color:black;\n"
+                "            color:white;\n"
+                "        }\n"
+                "    </style>"
+                "</head>\n"
+                "<body>\n"
+                "OK\n"
+                "</body>\n"
+                "</html>";
+
 int main(int argc, char** argv){
     crow::App<> app;
     crow::mustache::set_base("./html");
@@ -270,7 +288,7 @@ int main(int argc, char** argv){
 
     CROW_ROUTE(app,"/findPath2")
             .methods("GET"_method)
-                    ([&objs,&rest](const crow::request& req){
+                    ([&objs,&rest,&OK](const crow::request& req){
                         auto images = req.url_params.get_list("image");
 
                         rest=0;
@@ -300,7 +318,7 @@ int main(int argc, char** argv){
                                 obj.push_back({x,y,z});
                             }
                         }
-                        return "OK";
+                        return OK.c_str();
                     });
 
     CROW_ROUTE(app,"/findPath3")
@@ -370,9 +388,9 @@ int main(int argc, char** argv){
                         return crow::mustache::load("insertImage.html").render();
                     });
 
-    CROW_ROUTE(app,"/insertImage")
+    CROW_ROUTE(app,"/insertImage_post")
             .methods("POST"_method)
-                    ([&filePath](const crow::request& req){
+                    ([&filePath,&OK](const crow::request& req){
                         string content = crow::get_header_value<crow::ci_map >(req.headers,"content-type");
                         string content_type = content.substr(0,content.find(';'));
                         std::transform(content_type.begin(), content_type.end(), content_type.begin(), ::tolower);
@@ -393,7 +411,7 @@ int main(int argc, char** argv){
                             savePointCloud(obj.first,pc);
                         }
 
-                        return "OK";
+                        return OK.c_str();
                     });
 
     CROW_ROUTE(app,"/imageList")
@@ -405,6 +423,12 @@ int main(int argc, char** argv){
                                "<head>\n"
                                "    <meta charset=\"UTF-8\">\n"
                                "    <title>Image List</title>\n"
+                               "    <style type=\"text/css\">\n"
+                               "        body {\n"
+                               "            background-color:black;\n"
+                               "            color:white;\n"
+                               "        }\n"
+                               "    </style>"
                                "</head>\n"
                                "<body>\n"
                                "<form method=\"get\" action=\"findPath2\">";
