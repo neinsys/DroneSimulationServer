@@ -151,7 +151,9 @@ vector<point> loadPointCloud(const string& filename){
     return pc;
 }
 
-
+vector<vector<point>> objs;
+int rest=0;
+int max_num=0;
 int main(int argc, char** argv){
     crow::App<> app;
     crow::mustache::set_base("./html");
@@ -268,11 +270,11 @@ int main(int argc, char** argv){
 
     CROW_ROUTE(app,"/findPath2")
             .methods("GET"_method)
-                    ([&](const crow::request& req){
+                    ([&objs,&rest](const crow::request& req){
                         auto images = req.url_params.get_list("image");
-                        std::vector<std::vector<path*>> paths;
-                        vector<vector<point>> objs;
-                        int rest=0;
+
+                        rest=0;
+                        objs.clear();
                         if(req.url_params.get("rest")!=nullptr){
                             rest=boost::lexical_cast<int>(req.url_params.get("rest"));
                         }
@@ -281,7 +283,7 @@ int main(int argc, char** argv){
                             objs.push_back(loadPointCloud(filename));
                         }
 
-                        int max_num=0;
+                        max_num=0;
                         for(auto& obj:objs){
                             max_num=std::max<int>(max_num,obj.size());
                         }
@@ -298,10 +300,22 @@ int main(int argc, char** argv){
                                 obj.push_back({x,y,z});
                             }
                         }
+                        return "OK";
+                    });
 
+    CROW_ROUTE(app,"/findPath3")
+            .methods("GET"_method)
+                    ([&](const crow::request& req){
+                        crow::mustache::context ctx;
+                        return crow::mustache::load("example.txt").render();
+                    });
+    CROW_ROUTE(app,"/findPath4")
+            .methods("GET"_method)
+                    ([&](const crow::request& req){
 
+                        std::vector<std::vector<path*>> paths;
 
-                        for(int i=0;i<objs.size()-1;i++){
+                        for(int i=0;i<(int)objs.size()-1;i++){
                             auto start = objs[i];
                             auto end = objs[i+1];
                             int X=0,Y=0,Z=0;
@@ -347,13 +361,6 @@ int main(int argc, char** argv){
                         return s.str();
                     });
 
-    CROW_ROUTE(app,"/findPath3")
-            .methods("GET"_method)
-                    ([&](const crow::request& req){
-                        crow::mustache::context ctx;
-                        return crow::mustache::load("example.txt").render();
-
-                    });
 
 
     CROW_ROUTE(app,"/insertImage")
