@@ -330,8 +330,9 @@ int main(int argc, char** argv){
             .methods("GET"_method)
                     ([&](const crow::request& req){
 
-                        std::vector<std::vector<path*>> paths;
+                        std::vector<std::vector<path*>> paths((int)objs.size()-1);
                         std::cout<<objs.size()<<std::endl;
+                        #pragma omp parallel for
                         for(int i=0;i<(int)objs.size()-1;i++){
                             auto start = objs[i];
                             auto end = objs[i+1];
@@ -347,8 +348,7 @@ int main(int argc, char** argv){
                                 Z=std::max(Z,p.z);
                             }
 
-                            auto path = find_path(start,end,X+1,Y+1,Z+1);
-                            paths.push_back(path);
+                            paths[i] = find_path(start,end,X+1,Y+1,Z+1);
                         }
                         std::cout << "aa" << std::endl;
                         std::vector<path*> new_path = merge_path(paths,rest);
