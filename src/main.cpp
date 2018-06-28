@@ -416,6 +416,12 @@ int main(int argc, char** argv){
     CROW_ROUTE(app,"/imageList")
             .methods("POST"_method,"GET"_method)
                     ([&filePath](const crow::request& req){
+                        vector<string> files;
+                        for(auto&& file : fs::recursive_directory_iterator(filePath)){
+                            std::string filename=file.path().leaf().generic_string();
+                            files.push_back(filename);
+                        }
+                        std::sort(files.begin(),files.end());
                         std::stringstream list;
                         list <<"<!DOCTYPE html>\n"
                                "<html lang=\"en\">\n"
@@ -430,8 +436,7 @@ int main(int argc, char** argv){
                                "</head>\n"
                                "<body>\n"
                                "<form method=\"get\" action=\"findPath2\">";
-                        for(auto&& file : fs::recursive_directory_iterator(filePath)){
-                            std::string filename=file.path().leaf().generic_string();
+                        for(auto& filename : files){
                             list<<"<input type=\"checkbox\" name=\"image[]\" value=\""<<filename<<"\">" <<filename<<"<br>";
                         }
                         list <<"<input type=\"text\" name=\"rest\" value=\"0\">이미지간 간격<br>"
