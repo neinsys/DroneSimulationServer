@@ -33,4 +33,11 @@ add_custom_command(OUTPUT insertImage.html
         )
 add_custom_target(insertImage_copy ALL DEPENDS insertImage.html)
 
+add_custom_command(OUTPUT example.txt
+        COMMAND ${CMAKE_COMMAND} -E
+        copy ${PROJECT_SOURCE_DIR}/html/example.txt ${CMAKE_CURRENT_BINARY_DIR}/html/example.txt
+        DEPENDS ${PROJECT_SOURCE_DIR}/html/example.txt
+        )
+add_custom_target(example_copy ALL DEPENDS example.txt)
+
 

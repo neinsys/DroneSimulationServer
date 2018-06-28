@@ -118,7 +118,7 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
 
     pcl::io::savePCDFileASCII("debug.pcd",*voxel_cloud);
 
-/*    pcl::PointCloud<pcl::PointXYZ>::Ptr print_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+ /*   pcl::PointCloud<pcl::PointXYZ>::Ptr print_cloud(new pcl::PointCloud<pcl::PointXYZ>);
     *print_cloud = *voxel_cloud;
     pcl::visualization::PCLVisualizer vis3 ("VOXELIZED SAMPLES CLOUD");
     vis3.addPointCloud<pcl::PointXYZ> (print_cloud);
@@ -150,6 +150,7 @@ vector<point> loadPointCloud(const string& filename){
     inFile.close();
     return pc;
 }
+
 
 int main(int argc, char** argv){
     crow::App<> app;
@@ -344,6 +345,14 @@ int main(int argc, char** argv){
                         }
 
                         return s.str();
+                    });
+
+    CROW_ROUTE(app,"/findPath3")
+            .methods("GET"_method)
+                    ([&](const crow::request& req){
+                        crow::mustache::context ctx;
+                        return crow::mustache::load("example.txt").render();
+
                     });
 
 
