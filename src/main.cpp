@@ -331,7 +331,7 @@ int main(int argc, char** argv){
                     ([&](const crow::request& req){
 
                         std::vector<std::vector<path*>> paths;
-
+                        std::cout<<objs.size()<<std::endl;
                         for(int i=0;i<(int)objs.size()-1;i++){
                             auto start = objs[i];
                             auto end = objs[i+1];
