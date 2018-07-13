@@ -658,8 +658,8 @@ int main(int argc, char** argv){
                         vector<vector<point>> objs;
                         for(const auto& obj:param["objects"]){
                             vector<point> points;
-                            for(const auto& obj:obj["points"]){
-                                points.push_back({obj[0],obj[1],obj[2]});
+                            for(const auto& p:obj["points"]){
+                                points.push_back({p[0],p[1],p[2]});
                             }
                             objs.push_back(points);
                         }
