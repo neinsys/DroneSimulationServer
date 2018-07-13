@@ -8,6 +8,8 @@
 #include <locale>
 #include <limits.h>
 #include <algorithm>
+#include <cmath>
+#include <chrono>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -32,6 +34,11 @@
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/impl/point_types.hpp>
+
+#include <src/json/json.hpp>
+
+using json = nlohmann::json;
+
 using std::string;
 using std::ofstream;
 using std::endl;
@@ -127,6 +134,101 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
 */
     return *voxel_cloud;
 }
+pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ> cloud,const float max_width=50.0f,int target_num=1000){
+    float mx=1e18f;
+    float Mx=-1e18f;
+    float my=1e18f;
+    float My=-1e18f;
+    float mz=1e18f;
+    float Mz=-1e18f;
+    std::cout<<cloud<<std::endl<<cloud.points.size() << std::endl;
+    for(const pcl::PointXYZ& p:cloud.points ){
+        mx=std::min(mx,p.x);
+        Mx=std::max(Mx,p.x);
+        my=std::min(my,p.y);
+        My=std::max(My,p.y);
+        mz=std::min(mz,p.z);
+        Mz=std::max(Mz,p.z);
+    }
+    std::cout << Mx-mx << ' ' << My-my <<' '<< Mz - mz<< std::endl;
+    float distance = std::max({Mx-mx,My-my,Mz-mz});
+    float scale = max_width / distance;
+
+    for(pcl::PointXYZ& p:cloud.points ){
+        p.x-=mx;
+        p.y-=my;
+        p.z-=mz;
+        p.x*=scale;
+        p.y*=scale;
+        p.z*=scale;
+    }
+
+    pcl::PointCloud<pcl::PointXYZ> voxel_cloud;
+    double left = 0.0;
+    double right = 1.0;
+    for(int _=0;_<500;_++){
+        double mid= (left+right)/2.0;
+
+        pcl::PointCloud<pcl::PointXYZ> temp;
+        for(pcl::PointXYZ& p:cloud.points ){
+            temp.push_back(pcl::PointXYZ(p.x*mid, p.y*mid, p.z*mid));
+        }
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+        *cloud_ptr = temp;
+
+
+        pcl::VoxelGrid<pcl::PointXYZ> grid;
+        grid.setInputCloud (cloud_ptr);
+        grid.setLeafSize (leaf_size, leaf_size, leaf_size);
+        pcl::PointCloud<pcl::PointXYZ>* temp_cloud = new pcl::PointCloud<pcl::PointXYZ>;
+        grid.filter (*temp_cloud);
+        voxel_cloud=*temp_cloud;
+        int sz=voxel_cloud.points.size();
+        if(sz==target_num)break;
+        if(sz>target_num)right=mid;
+        else left=mid;
+    }
+
+
+    std::random_shuffle(voxel_cloud.points.begin(),voxel_cloud.points.end());
+    target_num=std::min<int>(target_num,voxel_cloud.points.size());
+    voxel_cloud.points.resize(target_num);
+    voxel_cloud.width=target_num;
+
+    std::cout << voxel_cloud << std::endl;
+
+    pcl::io::savePCDFileASCII("debug.pcd",voxel_cloud);
+
+    /*   pcl::PointCloud<pcl::PointXYZ>::Ptr print_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+       *print_cloud = *voxel_cloud;
+       pcl::visualization::PCLVisualizer vis3 ("VOXELIZED SAMPLES CLOUD");
+       vis3.addPointCloud<pcl::PointXYZ> (print_cloud);
+
+       vis3.spin ();
+   */
+    return voxel_cloud;
+}
+
+
+vector<std::string> obj2PointCloud(const std::string& objContent){
+    std::stringstream is(objContent);
+    vector<std::string> cloud;
+    for(std::string line; std::getline(is, line); )
+    {
+        std::istringstream in(line);
+
+        std::string v;
+        in >> v;
+        if (v != "v") continue;
+
+        // Read x y z
+        string p;
+        std::getline(in,p);
+        cloud.push_back(p);
+    }
+    return cloud;
+}
 
 void savePointCloud(const string& filename,const pcl::PointCloud<pcl::PointXYZ>& pc){
     std::ofstream outFile(filePath+"/"+filename);
@@ -154,6 +256,10 @@ vector<point> loadPointCloud(const string& filename){
 vector<vector<point>> objs;
 int rest=0;
 int max_num=0;
+
+double euclid_dist(point p,point q){
+    return hypot(p.x-q.x,hypot(p.y-q.y,p.z-q.z));
+}
 
 const string OK="<!DOCTYPE html>\n"
                 "<html lang=\"en\">\n"
@@ -186,7 +292,7 @@ int main(int argc, char** argv){
                 }
             }
         }
-        auto paths = find_path(start,end,10,10,60);
+        auto paths = find_path_using_dinic(start,end,10,10,60);
         int n=paths.size();
         int t=paths.back()->size()-1;
         std::stringstream s;
@@ -254,7 +360,7 @@ int main(int argc, char** argv){
                                 Z=std::max(Z,p.z);
                             }
 
-                            paths[i] = find_path(start,end,X+1,Y+1,Z+1);
+                            paths[i] = find_path_using_dinic(start,end,X+1,Y+1,Z+1);
                         }
                         std::cout << "aa" << std::endl;
                         std::vector<path*> new_path = merge_path(paths,rest);
@@ -347,7 +453,7 @@ int main(int argc, char** argv){
                                 Z=std::max(Z,p.z);
                             }
 
-                            paths[i] = find_path(start,end,X+1,Y+1,Z+1);
+                            paths[i] = find_path_using_dinic(start,end,X+1,Y+1,Z+1);
                         }
                         std::cout << "aa" << std::endl;
                         std::vector<path*> new_path = merge_path(paths,rest);
@@ -405,7 +511,8 @@ int main(int argc, char** argv){
                         fs::create_directory(filePath);
 
                         for(const pair<string,string>& obj:objFiles){
-                            auto pc = convertPointCloud(obj.second);
+                            pcl::PointCloud<pcl::PointXYZ> cloud=Converter().obj2PointCloud(obj.second);
+                            auto pc = filteringPointCloud(cloud);
                             savePointCloud(obj.first,pc);
                         }
 
@@ -469,6 +576,193 @@ int main(int argc, char** argv){
 
         return "Hello world";
     });
+    CROW_ROUTE(app,"/json_test")
+            .methods("POST"_method,"GET"_method)
+                    ([](const crow::request& req){
+                        auto x = crow::json::load(req.body);
+                        if(!x)
+                            return crow::response(400);
+
+
+                        return crow::response(200);
+                    });
+    CROW_ROUTE(app,"/getPointsByObj")
+               .methods("POST"_method)
+                       ([](const crow::request& req){
+                           string content = crow::get_header_value<crow::ci_map >(req.headers,"content-type");
+                           string content_type = content.substr(0,content.find(';'));
+                           std::transform(content_type.begin(), content_type.end(), content_type.begin(), ::tolower);
+
+                           size_t idx = content.find("boundary=")+string("boundary=").length();
+                           string boundary = "--"+content.substr(idx);
+
+                           vector<pair<string,string>> objFiles = readFileFormData(req.body,boundary);
+                           json objs = json::array();
+                           for(const pair<string,string>& obj:objFiles){
+                               json j={};
+                               j["filename"]=obj.first;
+                               vector<string> pc = obj2PointCloud(obj.second);
+                               json points=json::array();
+                               for(string p : pc){
+                                   points.push_back(p);
+                               }
+                               j["points"]=points;
+                               objs.push_back(j);
+                           }
+                           return objs.dump();
+                       });
+    CROW_ROUTE(app,"/filteringPoints")
+               .methods("POST"_method)
+                       ([](const crow::request& req){
+                           auto param = json::parse(req.body);
+
+
+                           int num = param["number"];
+                           std::cout<<num<<std::endl;
+                           auto objs = param["objs"];
+                           std::cout << objs.size();
+                           json res=json::array();
+
+                           for(int i=0;i<objs.size();i++){
+                               auto& obj=objs[i];
+                               pcl::PointCloud <pcl::PointXYZ> cloud;
+
+                               for (const string& line:obj["points"]) {
+                                   std::istringstream in(line);
+
+                                   // Read x y z
+                                   float x, y, z;
+                                   in >> x >> y >> z;
+                                   cloud.push_back(pcl::PointXYZ(x, y, z));
+                               }
+                               //auto filter_cloud =test(cloud);
+                               auto filter_cloud = filteringPointCloud(cloud,50.0f,num);
+                               json j={};
+                               j["filename"]=obj["filename"];
+                               json points=json::array();
+                                std::cout<<filter_cloud.points.size()<<std::endl;
+                                for(int j=0;j<filter_cloud.points.size();j++){
+                                    const auto& p = filter_cloud.points[j];
+                                    json point = {(int)p.x,(int)p.y,(int)p.z};
+                                    points.push_back(point);
+                                }
+                                j["points"]=points;
+                                res.push_back(j);
+                           }
+                           return res.dump();
+                       });
+    CROW_ROUTE(app,"/calculatePath")
+            .methods("POST"_method)
+                    ([](const crow::request& req){
+                        auto param = json::parse(req.body);
+                        vector<vector<point>> objs;
+                        for(const auto& obj:param["objects"]){
+                            vector<point> points;
+                            for(const auto& obj:obj["points"]){
+                                points.push_back({obj[0],obj[1],obj[2]});
+                            }
+                            objs.push_back(points);
+                        }
+                        string algorithm = param["algorithm"];
+                        int rest = param["rest"];
+                        std::vector<std::vector<path*>> paths((int)objs.size()-1);
+                        vector<long> clocks((int)objs.size()-1);
+                        using namespace std::chrono;
+#pragma omp parallel for
+                        for(int i=0;i<(int)objs.size()-1;i++){
+                            auto start = objs[i];
+                            auto end = objs[i+1];
+                            int X=0,Y=0,Z=0;
+                            for(const point& p:start){
+                                X=std::max(X,p.x);
+                                Y=std::max(Y,p.y);
+                                Z=std::max(Z,p.z);
+                            }
+                            for(const point& p:end){
+                                X=std::max(X,p.x);
+                                Y=std::max(Y,p.y);
+                                Z=std::max(Z,p.z);
+                            }
+                            system_clock::time_point start_t = system_clock::now();
+                            if(algorithm=="Dinic")
+                                paths[i] = find_path_using_dinic(start,end,X+1,Y+1,Z+1);
+                            else if(algorithm == "MCMF")
+                                paths[i]=find_path_using_mcmf(start,end,X+1,Y+1,Z+1);
+                            else if(algorithm=="DinicAndMCMF")
+                                paths[i]=find_path_using_mcmf_and_dinic(start,end,X+1,Y+1,Z+1);
+                            system_clock::time_point end_t = system_clock::now();
+                            milliseconds calc = duration_cast<milliseconds>(end_t-start_t);
+                            clocks[i]=calc.count();
+                        }
+                        json ret;
+                        ret["analysis"]=json::array();
+                        for(int i=0;i<paths.size();i++){
+                            auto& Path = paths[i];
+                            auto& calcTime=clocks[i];
+                            json analysis;
+                            double max_detour=0.0;
+                            double sum_euclid=0.0;
+                            double sum_path_length=0.0;
+                            int T=0;
+                            for(path* p:Path){
+                                double euclid=euclid_dist(p->head->p,p->tail->p);
+                                double path_length=0.0;
+                                for(node* it=p->head;it->next!=NULL;it=it->next){
+                                    path_length+=euclid_dist(it->p,it->next->p);
+                                }
+                                double detour = path_length / euclid;
+                                max_detour=std::max(max_detour,detour);
+                                sum_euclid+=euclid;
+                                sum_path_length+=path_length;
+                                T=p->size();
+                            }
+                            printf("%ld\n",calcTime);
+                            analysis["calcTime"]=calcTime;
+                            analysis["time"] = T;
+                            analysis["max_detour"] = max_detour;
+                            analysis["avg_detour"] = sum_path_length / sum_euclid;
+                            std::ostringstream image;
+                            image << param["objects"][i]["filename"];
+                            image << "(";
+                            image << (int)param["objects"][i]["points"].size();
+                            image << ") -> ";
+                            image << param["objects"][i+1]["filename"];
+                            image << "(";
+                            image << (int)param["objects"][i+1]["points"].size();
+                            image << ")";
+                            analysis["image"] = image.str();
+                            ret["analysis"].push_back(analysis);
+                        }
+                        std::vector<path*> new_path = merge_path(paths,rest);
+                        paths.clear();
+                        json total_path=json::array();
+                        if(new_path.empty()){
+                            for(auto& obj : objs){
+                                for(const point& p:obj) {
+
+                                    json one_path=json::array();
+                                    json point ={p.x,p.y,p.z};
+                                    one_path.push_back(point);
+                                    total_path.push_back(one_path);
+                                }
+                            }
+
+                        }
+                        else{
+                            for(const path* P:new_path){
+                                json one_path=json::array();
+                                for(auto it=P->head;it!=NULL;it=it->next){
+                                    point p=it->p;
+                                    json point ={p.x,p.y,p.z};
+                                    one_path.push_back(point);
+                                }
+                                total_path.push_back(one_path);
+                            }
+                        }
+                        ret["paths"]=total_path;
+
+                        return ret.dump();
+                    });
     app.port(8080).multithreaded().run();
     return 0;
 

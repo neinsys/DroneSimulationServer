@@ -18,7 +18,7 @@ find_package(PCL 1.6 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
-
+include_directories(json)
 
 add_executable(drone_server main.cpp)
 target_link_libraries(drone_server ${Boost_LIBRARIES})
