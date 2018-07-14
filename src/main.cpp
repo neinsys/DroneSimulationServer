@@ -134,6 +134,36 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
 */
     return *voxel_cloud;
 }
+
+void setCenter(pcl::PointCloud<pcl::PointXYZ>& cloud,const float max_width=50.0f){
+    float mx=1e18f;
+    float Mx=-1e18f;
+    float my=1e18f;
+    float My=-1e18f;
+    float mz=1e18f;
+    float Mz=-1e18f;
+    std::cout<<cloud<<std::endl<<cloud.points.size() << std::endl;
+    for(const pcl::PointXYZ& p:cloud.points ){
+        mx=std::min(mx,p.x);
+        Mx=std::max(Mx,p.x);
+        my=std::min(my,p.y);
+        My=std::max(My,p.y);
+        mz=std::min(mz,p.z);
+        Mz=std::max(Mz,p.z);
+    }
+    float fx=(max_width-(Mx-mx))/2.0f;
+    float fy=(max_width-(My-my))/2.0f;
+    float fz=(max_width-(Mz-mz))/2.0f;
+
+    for(pcl::PointXYZ& p:cloud.points ){
+        p.x-=mx;
+        p.y-=my;
+        p.z-=mz;
+        p.x+=fx;
+        p.y+=fy;
+        p.z+=fz;
+    }
+}
 pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ> cloud,const float max_width=50.0f,int target_num=1000){
     float mx=1e18f;
     float Mx=-1e18f;
@@ -166,6 +196,7 @@ pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ
     pcl::PointCloud<pcl::PointXYZ> voxel_cloud;
     double left = 0.0;
     double right = 1.0;
+    bool flag=false;
     for(int _=0;_<500;_++){
         double mid= (left+right)/2.0;
 
@@ -183,12 +214,19 @@ pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ
         grid.setLeafSize (leaf_size, leaf_size, leaf_size);
         pcl::PointCloud<pcl::PointXYZ>* temp_cloud = new pcl::PointCloud<pcl::PointXYZ>;
         grid.filter (*temp_cloud);
-        voxel_cloud=*temp_cloud;
         int sz=voxel_cloud.points.size();
+        if(sz>target_num || (!flag &&_==499)){
+            flag=true;
+            voxel_cloud=*temp_cloud;
+        }
+
+
         if(sz==target_num)break;
         if(sz>target_num)right=mid;
         else left=mid;
     }
+
+    setCenter(voxel_cloud,max_width);
 
 
     std::random_shuffle(voxel_cloud.points.begin(),voxel_cloud.points.end());
