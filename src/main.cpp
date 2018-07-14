@@ -134,7 +134,13 @@ pcl::PointCloud<pcl::PointXYZ> convertPointCloud(const string& content,const flo
 */
     return *voxel_cloud;
 }
-
+void floorCloud(pcl::PointCloud<pcl::PointXYZ>& cloud){
+    for(pcl::PointXYZ& p:cloud.points ){
+        p.x=floor(p.x);
+        p.y=floor(p.y);
+        p.z=floor(p.z);
+    }
+}
 void setCenter(pcl::PointCloud<pcl::PointXYZ>& cloud,const float max_width=50.0f){
     float mx=1e18f;
     float Mx=-1e18f;
@@ -225,7 +231,7 @@ pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ
         if(sz>target_num)right=mid;
         else left=mid;
     }
-
+    floorCloud(voxel_cloud);
     setCenter(voxel_cloud,max_width);
 
 
