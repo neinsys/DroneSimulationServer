@@ -215,7 +215,7 @@ pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ
         pcl::PointCloud<pcl::PointXYZ>* temp_cloud = new pcl::PointCloud<pcl::PointXYZ>;
         grid.filter (*temp_cloud);
         int sz=voxel_cloud.points.size();
-        if(sz>target_num || (!flag &&_==499)){
+        if(sz>=target_num || (!flag &&_==499)){
             flag=true;
             voxel_cloud=*temp_cloud;
         }
