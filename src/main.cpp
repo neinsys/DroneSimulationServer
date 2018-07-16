@@ -170,7 +170,7 @@ void setCenter(pcl::PointCloud<pcl::PointXYZ>& cloud,const float max_width=50.0f
         p.z+=fz;
     }
 }
-pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ> cloud,const float max_width=50.0f,int target_num=1000){
+pcl::PointCloud<pcl::PointXYZ> filteringPointCloud(pcl::PointCloud<pcl::PointXYZ> cloud,const float max_width=50.0f,int target_num=1000,const float leaf_size=1.0f){
     float mx=1e18f;
     float Mx=-1e18f;
     float my=1e18f;
@@ -662,8 +662,16 @@ int main(int argc, char** argv){
 
 
                            int num = param["number"];
-                           std::cout<<num<<std::endl;
+                           float max_width = 50.0f;
+                           float leaf_size = 1.0f;
+                           if(param.count("width")){
+                               max_width = param["width"];
+                           }
+                           if(param.count("leaf_size")){
+                               leaf_size=param["leaf_size"];
+                           }
                            auto objs = param["objs"];
+                           std::cout<<"number : " << num << ", width : " << max_width << ", leaf size : " << leaf_size <<std::endl;
                            std::cout << objs.size();
                            json res=json::array();
 
@@ -680,7 +688,7 @@ int main(int argc, char** argv){
                                    cloud.push_back(pcl::PointXYZ(x, y, z));
                                }
                                //auto filter_cloud =test(cloud);
-                               auto filter_cloud = filteringPointCloud(cloud,50.0f,num);
+                               auto filter_cloud = filteringPointCloud(cloud,max_width,num,leaf_size);
                                json j={};
                                j["filename"]=obj["filename"];
                                json points=json::array();
@@ -747,6 +755,7 @@ int main(int argc, char** argv){
                             double max_detour=0.0;
                             double sum_euclid=0.0;
                             double sum_path_length=0.0;
+                            double sum_detour=0.0;
                             int T=0;
                             for(path* p:Path){
                                 double euclid=euclid_dist(p->head->p,p->tail->p);
@@ -754,17 +763,22 @@ int main(int argc, char** argv){
                                 for(node* it=p->head;it->next!=NULL;it=it->next){
                                     path_length+=euclid_dist(it->p,it->next->p);
                                 }
+
                                 double detour = path_length / euclid;
+                                if(fabs(euclid)<1e-9)detour=1.0;
                                 max_detour=std::max(max_detour,detour);
                                 sum_euclid+=euclid;
                                 sum_path_length+=path_length;
+                                sum_detour+=detour;
                                 T=p->size();
                             }
                             printf("%ld\n",calcTime);
                             analysis["calcTime"]=calcTime;
                             analysis["time"] = T;
                             analysis["max_detour"] = max_detour;
-                            analysis["avg_detour"] = sum_path_length / sum_euclid;
+                            analysis["avg_detour(sum path length / sum euclidean distance)"] = sum_path_length / sum_euclid;
+                            analysis["avg_detour(sum detour / number of path)"] = sum_detour / (int)Path.size();
+                            analysis["algorithm"] = algorithm;
                             std::ostringstream image;
                             image << param["objects"][i]["filename"];
                             image << "(";
