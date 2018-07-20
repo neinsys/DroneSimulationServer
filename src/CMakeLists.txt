@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project (drone_server)
 
+set(CMAKE_CXX_STANDARD 17)
+
 add_subdirectory(find_path)
 add_subdirectory(image/PCL_converter)
 

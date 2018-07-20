@@ -296,6 +296,41 @@ vector<point> loadPointCloud(const string& filename){
     inFile.close();
     return pc;
 }
+std::tuple<vector<point>,vector<point>,int,int,int,int,int,int> compress_points(vector<point> start,vector<point> end,int optimization){
+    auto CX=[](const point& p,const point &q){
+        return p.x<q.x;
+    };
+    auto CY=[](const point& p,const point &q){
+        return p.y<q.y;
+    };
+    auto CZ=[](const point& p,const point &q){
+        return p.z<q.z;
+    };
+    int mx=std::min(std::min_element(start.begin(),start.end(),CX)->x,std::min_element(end.begin(),end.end(),CX)->x);
+    int my=std::min(std::min_element(start.begin(),start.end(),CY)->y,std::min_element(end.begin(),end.end(),CY)->y);
+    int mz=std::min(std::min_element(start.begin(),start.end(),CZ)->z,std::min_element(end.begin(),end.end(),CZ)->z);
+    int Mx=std::max(std::max_element(start.begin(),start.end(),CX)->x,std::max_element(end.begin(),end.end(),CX)->x);
+    int My=std::max(std::max_element(start.begin(),start.end(),CY)->y,std::max_element(end.begin(),end.end(),CY)->y);
+    int Mz=std::max(std::max_element(start.begin(),start.end(),CZ)->z,std::max_element(end.begin(),end.end(),CZ)->z);
+    printf("%d %d %d %d %d %d\n",Mx,My,Mz,mx,my,mz);
+    if(optimization<0)return {start,end,Mx,My,Mz,0,0,0};
+    int X=Mx-mx+optimization*2;
+    int Y=My-my+optimization*2;
+    int Z=Mz-mz+optimization*2;
+    for(point& p:start){
+        p.x+=-mx+optimization;
+        p.y+=-my+optimization;
+        p.z+=-mz+optimization;
+    }
+    for(point& p:end){
+        p.x+=-mx+optimization;
+        p.y+=-my+optimization;
+        p.z+=-mz+optimization;
+    }
+    return {start,end,X,Y,Z,mx-optimization,my-optimization,mz-optimization};
+
+};
+
 
 vector<vector<point>> objs;
 int rest=0;
@@ -719,24 +754,17 @@ int main(int argc, char** argv){
                         }
                         string algorithm = param["algorithm"];
                         int rest = param["rest"];
+                        int optimization=-1;
+                        if(param.count("optimization")){
+                            optimization = param["optimization"];
+                        }
                         std::vector<analysis> paths((int)objs.size()-1);
                         vector<long> clocks((int)objs.size()-1);
                         using namespace std::chrono;
 #pragma omp parallel for
                         for(int i=0;i<(int)objs.size()-1;i++){
-                            auto start = objs[i];
-                            auto end = objs[i+1];
-                            int X=0,Y=0,Z=0;
-                            for(const point& p:start){
-                                X=std::max(X,p.x);
-                                Y=std::max(Y,p.y);
-                                Z=std::max(Z,p.z);
-                            }
-                            for(const point& p:end){
-                                X=std::max(X,p.x);
-                                Y=std::max(Y,p.y);
-                                Z=std::max(Z,p.z);
-                            }
+                            auto [start,end,X,Y,Z,mx,my,mz] = compress_points(objs[i],objs[i+1],optimization);
+
                             system_clock::time_point start_t = system_clock::now();
 
                             if(algorithm=="Dinic")
@@ -748,12 +776,20 @@ int main(int argc, char** argv){
                             system_clock::time_point end_t = system_clock::now();
                             milliseconds calc = duration_cast<milliseconds>(end_t-start_t);
                             clocks[i]=calc.count();
+
+                            for(path* p:paths[i].paths){
+                                for(node* it=p->head;it!=NULL;it=it->next){
+                                    it->p.x+=mx;
+                                    it->p.y+=my;
+                                    it->p.z+=mz;
+                                }
+                            }
                         }
                         json ret;
                         ret["analysis"]=json::array();
                         for(int i=0;i<paths.size();i++){
                             auto& Path = paths[i].paths;
-                            auto& collisions = paths[i].collsions;
+                            auto collisions = paths[i].collsions;
                             auto& calcTime=clocks[i];
                             json analysis;
                             double max_detour=0.0;
@@ -777,6 +813,7 @@ int main(int argc, char** argv){
                                 T=p->size();
                             }
                             printf("%ld\n",calcTime);
+                            analysis["compress_value"] = optimization;
                             analysis["calcTime"]=calcTime;
                             analysis["time"] = T;
                             analysis["max_detour"] = max_detour;
@@ -796,7 +833,10 @@ int main(int argc, char** argv){
                             analysis["image"] = image.str();
                             ret["analysis"].push_back(analysis);
                         }
+                        printf("???\n");
                         std::vector<path*> new_path = merge_path(paths,rest);
+
+                        printf("???\n");
                         paths.clear();
                         json total_path=json::array();
                         if(new_path.empty()){
@@ -812,6 +852,7 @@ int main(int argc, char** argv){
 
                         }
                         else{
+                            printf("???\n");
                             for(const path* P:new_path){
                                 json one_path=json::array();
                                 for(auto it=P->head;it!=NULL;it=it->next){
@@ -823,7 +864,7 @@ int main(int argc, char** argv){
                             }
                         }
                         ret["paths"]=total_path;
-
+                        printf("???\n");
                         return ret.dump();
                     });
     app.port(8080).multithreaded().run();
