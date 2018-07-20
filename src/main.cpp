@@ -336,7 +336,7 @@ int main(int argc, char** argv){
                 }
             }
         }
-        auto paths = find_path_using_dinic(start,end,10,10,60);
+        auto paths = find_path_using_dinic(start,end,10,10,60).paths;
         int n=paths.size();
         int t=paths.back()->size()-1;
         std::stringstream s;
@@ -387,7 +387,7 @@ int main(int argc, char** argv){
 
 
 
-                        std::vector<std::vector<path*>> paths((int)objs.size()-1);
+                        std::vector<analysis> paths((int)objs.size()-1);
                         #pragma omp parallel for
                         for(int i=0;i<(int)objs.size()-1;i++){
                             auto start = objs[i];
@@ -480,7 +480,7 @@ int main(int argc, char** argv){
             .methods("GET"_method)
                     ([&](const crow::request& req){
 
-                        std::vector<std::vector<path*>> paths((int)objs.size()-1);
+                        std::vector<analysis> paths((int)objs.size()-1);
                         #pragma omp parallel for
                         for(int i=0;i<(int)objs.size()-1;i++){
                             auto start = objs[i];
@@ -691,6 +691,8 @@ int main(int argc, char** argv){
                                auto filter_cloud = filteringPointCloud(cloud,max_width,num,leaf_size);
                                json j={};
                                j["filename"]=obj["filename"];
+                               j["max_width"]=max_width;
+                               j["leaf_size"] = leaf_size;
                                json points=json::array();
                                 std::cout<<filter_cloud.points.size()<<std::endl;
                                 for(int j=0;j<filter_cloud.points.size();j++){
@@ -717,7 +719,7 @@ int main(int argc, char** argv){
                         }
                         string algorithm = param["algorithm"];
                         int rest = param["rest"];
-                        std::vector<std::vector<path*>> paths((int)objs.size()-1);
+                        std::vector<analysis> paths((int)objs.size()-1);
                         vector<long> clocks((int)objs.size()-1);
                         using namespace std::chrono;
 #pragma omp parallel for
@@ -736,6 +738,7 @@ int main(int argc, char** argv){
                                 Z=std::max(Z,p.z);
                             }
                             system_clock::time_point start_t = system_clock::now();
+
                             if(algorithm=="Dinic")
                                 paths[i] = find_path_using_dinic(start,end,X+1,Y+1,Z+1);
                             else if(algorithm == "MCMF")
@@ -749,7 +752,8 @@ int main(int argc, char** argv){
                         json ret;
                         ret["analysis"]=json::array();
                         for(int i=0;i<paths.size();i++){
-                            auto& Path = paths[i];
+                            auto& Path = paths[i].paths;
+                            auto& collisions = paths[i].collsions;
                             auto& calcTime=clocks[i];
                             json analysis;
                             double max_detour=0.0;
@@ -779,6 +783,7 @@ int main(int argc, char** argv){
                             analysis["avg_detour(sum path length / sum euclidean distance)"] = sum_path_length / sum_euclid;
                             analysis["avg_detour(sum detour / number of path)"] = sum_detour / (int)Path.size();
                             analysis["algorithm"] = algorithm;
+                            analysis["collisions"] = collisions;
                             std::ostringstream image;
                             image << param["objects"][i]["filename"];
                             image << "(";
