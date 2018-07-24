@@ -862,7 +862,7 @@ int main(int argc, char** argv){
                                 }
                                 total_path.push_back(one_path);
                             }
-                            for(paht* P:new_path){
+                            for(path* P:new_path){
                                 delete P;
                             }
                         }
