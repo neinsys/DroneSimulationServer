@@ -534,6 +534,9 @@ int main(int argc, char** argv){
                             analysis["avg_detour(sum detour / number of path)"] = sum_detour / (int)Path.size();
                             analysis["algorithm"] = algorithm;
                             analysis["collisions"] = collisions;
+                            analysis["Mx"]=paths[i].Mx;
+                            analysis["My"]=paths[i].My;
+                            analysis["Mz"]=paths[i].Mz;
                             std::ostringstream image;
                             image << param["objects"][i]["filename"];
                             image << "(";
