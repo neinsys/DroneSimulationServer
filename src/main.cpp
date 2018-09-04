@@ -532,6 +532,7 @@ int main(int argc, char** argv){
                             analysis["max_detour"] = max_detour;
                             analysis["avg_detour(sum path length / sum euclidean distance)"] = sum_path_length / sum_euclid;
                             analysis["avg_detour(sum detour / number of path)"] = sum_detour / (int)Path.size();
+                            analysis["sum_path_length"] = sum_path_length;
                             analysis["algorithm"] = algorithm;
                             analysis["collisions"] = collisions;
                             analysis["Mx"]=paths[i].Mx;
