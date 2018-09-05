@@ -312,7 +312,6 @@ std::tuple<vector<point>,vector<point>,int,int,int,int,int,int> compress_points(
     int Mx=std::max(std::max_element(start.begin(),start.end(),CX)->x,std::max_element(end.begin(),end.end(),CX)->x);
     int My=std::max(std::max_element(start.begin(),start.end(),CY)->y,std::max_element(end.begin(),end.end(),CY)->y);
     int Mz=std::max(std::max_element(start.begin(),start.end(),CZ)->z,std::max_element(end.begin(),end.end(),CZ)->z);
-    printf("%d %d %d %d %d %d\n",Mx,My,Mz,mx,my,mz);
     if(optimization<0)return {start,end,Mx,My,Mz,0,0,0};
     int X=Mx-mx+optimization*2;
     int Y=My-my+optimization*2;
@@ -523,7 +522,6 @@ int main(int argc, char** argv){
                                 sum_detour+=detour;
                                 T=p->size();
                             }
-                            printf("%ld\n",calcTime);
                             analysis["compress_value"] = optimization;
                             analysis["calcTime"]=calcTime;
                             analysis["T_calcTime"]=T_calc_time;
@@ -550,10 +548,7 @@ int main(int argc, char** argv){
                             analysis["image"] = image.str();
                             ret["analysis"].push_back(analysis);
                         }
-                        printf("???\n");
                         std::vector<path*> new_path = merge_path(paths,rest);
-
-                        printf("???\n");
                         paths.clear();
                         json total_path=json::array();
                         if(new_path.empty()){
@@ -569,7 +564,6 @@ int main(int argc, char** argv){
 
                         }
                         else{
-                            printf("???\n");
                             for(const path* P:new_path){
                                 json one_path=json::array();
                                 for(auto it=P->head;it!=NULL;it=it->next){
@@ -580,11 +574,10 @@ int main(int argc, char** argv){
                                 total_path.push_back(one_path);
                             }
                             for(path* P:new_path){
-                                delete P;
+ //                               delete P;
                             }
                         }
                         ret["paths"]=total_path;
-                        printf("???\n");
                         return ret.dump();
                     });
     app.port(8080).multithreaded().run();
