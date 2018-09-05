@@ -485,17 +485,17 @@ int main(int argc, char** argv){
                             milliseconds calc = duration_cast<milliseconds>(end_t-start_t);
                             clocks[i]=calc.count();
 
-                            for(path* p:paths[i].paths){
-                                for(node* it=p->head;it!=NULL;it=it->next){
-                                    it->p.x+=mx;
-                                    it->p.y+=my;
-                                    it->p.z+=mz;
+                            for(path& P:paths[i].paths){
+                                for(point& p: P){
+                                    p.x+=mx;
+                                    p.y+=my;
+                                    p.z+=mz;
                                 }
                             }
                         }
                         json ret;
                         ret["analysis"]=json::array();
-                        for(int i=0;i<paths.size();i++){
+                        for(int i=0;i<(int)paths.size();i++){
                             auto& Path = paths[i].paths;
                             auto collisions = paths[i].collsions;
                             auto& calcTime=clocks[i];
@@ -507,11 +507,11 @@ int main(int argc, char** argv){
                             double sum_path_length=0.0;
                             double sum_detour=0.0;
                             int T=0;
-                            for(path* p:Path){
-                                double euclid=euclid_dist(p->head->p,p->tail->p);
+                            for(path& p:Path){
+                                double euclid=euclid_dist(p.front(),p.back());
                                 double path_length=0.0;
-                                for(node* it=p->head;it->next!=NULL;it=it->next){
-                                    path_length+=euclid_dist(it->p,it->next->p);
+                                for(auto it=p.begin();std::next(it)!=p.end();it=std::next(it)){
+                                    path_length+=euclid_dist(*it,*std::next(it));
                                 }
 
                                 double detour = path_length / euclid;
@@ -520,7 +520,7 @@ int main(int argc, char** argv){
                                 sum_euclid+=euclid;
                                 sum_path_length+=path_length;
                                 sum_detour+=detour;
-                                T=p->size();
+                                T=(int)p.size();
                             }
                             analysis["compress_value"] = optimization;
                             analysis["calcTime"]=calcTime;
@@ -548,7 +548,7 @@ int main(int argc, char** argv){
                             analysis["image"] = image.str();
                             ret["analysis"].push_back(analysis);
                         }
-                        std::vector<path*> new_path = merge_path(paths,rest);
+                        std::vector<path> new_path = merge_path(paths,rest);
                         paths.clear();
                         json total_path=json::array();
                         if(new_path.empty()){
@@ -564,18 +564,16 @@ int main(int argc, char** argv){
 
                         }
                         else{
-                            for(const path* P:new_path){
+                            for(const path& P:new_path){
                                 json one_path=json::array();
-                                for(auto it=P->head;it!=NULL;it=it->next){
-                                    point p=it->p;
+                                for(auto it=P.begin();it!=P.end();it=std::next(it)){
+                                    const point& p=*it;
                                     json point ={p.x,p.y,p.z};
                                     one_path.push_back(point);
                                 }
                                 total_path.push_back(one_path);
                             }
-                            for(path* P:new_path){
- //                               delete P;
-                            }
+
                         }
                         ret["paths"]=total_path;
                         return ret.dump();
